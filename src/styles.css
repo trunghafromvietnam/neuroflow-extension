@@ -1,132 +1,73 @@
-/* 1. Grayscale Effect (Trắng đen) */
-.neuroflow-grayscale {
+/* ==========================================================================
+   NEUROFLOW VISUAL SYSTEM
+   ========================================================================== */
+
+/* --- BREATHING STATES --- */
+@keyframes bio-breathe-growth {
+    0% { box-shadow: inset 0 0 0px rgba(46, 204, 113, 0); }
+    50% { box-shadow: inset 0 0 40px rgba(46, 204, 113, 0.2); }
+    100% { box-shadow: inset 0 0 0px rgba(46, 204, 113, 0); }
+}
+
+@keyframes bio-breathe-warning {
+    0% { box-shadow: inset 0 0 0px rgba(231, 76, 60, 0); }
+    50% { box-shadow: inset 0 0 60px rgba(231, 76, 60, 0.4); }
+    100% { box-shadow: inset 0 0 0px rgba(231, 76, 60, 0); }
+}
+
+.neuroflow-growth-mode {
+    animation: bio-breathe-growth 5s infinite ease-in-out !important;
+    filter: none !important;
+}
+
+.neuroflow-dopamine-mode {
+    animation: bio-breathe-warning 1.5s infinite ease-in-out !important;
     filter: grayscale(100%) !important;
-    transition: filter 0.5s ease-in-out;
+    transition: filter 0.25s ease;
 }
 
-/* 2. Blur Effect */
-.neuroflow-blur {
-    filter: grayscale(100%) blur(0px); 
-}
+html { min-height: 100%; }
 
-/* 3. Hide Short/Reels */
-ytd-rich-shelf-renderer[is-shorts] {
-    display: none !important;
-}
-
-html {
-    transition: filter 0.2s ease-out; 
-    
-    min-height: 100%;
-}
-
-::-webkit-scrollbar {
-    width: 0px;
-    background: transparent;
-} 
-
-/* --- NEUROFLOW GATEWAY --- */
-
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono:wght@300;400&display=swap');
-
-#neuroflow-gateway {
-    position: fixed;
-    top: 0; 
-    left: 0; 
-    width: 100vw; 
-    height: 100vh;
-    background: 
-        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
-        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)),
-        radial-gradient(circle at center, #1a1a2e 0%, #000000 100%);
-        
-    background-size: 100% 2px, 3px 100%, 100% 100%;
-
+/* --- CYBERPUNK MODAL --- */
+.nf-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.92);
+    backdrop-filter: blur(14px);
     z-index: 2147483647;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    font-family: 'Roboto Mono', monospace;
-    color: #e0e0e0;
+    display: grid; place-items: center;
 }
 
-/* Tiêu đề chính */
-#neuroflow-gateway h1 {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 3rem;
-    margin-bottom: 10px;
-    font-weight: 700;
-    letter-spacing: 4px;
-    color: #00d2ff; 
-    text-shadow: 0 0 10px rgba(0, 210, 255, 0.7), 0 0 20px rgba(0, 210, 255, 0.5);
-    text-transform: uppercase;
-}
-
-#neuroflow-prompt {
-    font-size: 1.2rem;
-    margin-bottom: 30px;
-    opacity: 0.9;
-    min-height: 1.5em; 
-    border-right: 2px solid #00d2ff; 
-    padding-right: 5px;
-    animation: blinkCursor 0.75s step-end infinite;
-    white-space: nowrap; 
-    overflow: hidden;
-}
-
-@keyframes blinkCursor {
-    from, to { border-color: transparent }
-    50% { border-color: #00d2ff; }
-}
-
-#neuroflow-input {
-    background: rgba(0, 210, 255, 0.1); 
-    border: 1px solid #00d2ff;
-    border-radius: 4px;
-    color: #00d2ff;
-    font-family: 'Roboto Mono', monospace;
-    font-size: 1.3rem;
-    padding: 15px 20px;
-    width: 60%;
-    max-width: 600px;
+.nf-card {
+    width: min(500px, 90vw);
+    background: linear-gradient(180deg, rgba(15,15,20,0.98), rgba(5,5,5,0.95));
+    border: 1px solid rgba(0,210,255,0.3);
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 0 80px rgba(0,210,255,0.15);
+    font-family: 'Segoe UI', monospace;
     text-align: center;
-    margin-bottom: 30px;
-    outline: none;
-    transition: all 0.3s ease;
-    box-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
 }
 
-#neuroflow-input:focus {
-    background: rgba(0, 210, 255, 0.2);
-    box-shadow: 0 0 20px rgba(0, 210, 255, 0.5);
-}
-#neuroflow-input::placeholder { color: rgba(0, 210, 255, 0.5); }
+.nf-title { font-size: 24px; font-weight: 900; color: #00d2ff; margin-bottom: 5px; letter-spacing: 2px; }
+.nf-sub { color: #888; margin-bottom: 25px; font-size: 14px; }
 
-#neuroflow-btn {
-    padding: 15px 40px;
-    background: transparent;
-    color: #555;
-    border: 2px solid #333;
-    font-family: 'Orbitron', sans-serif;
-    border-radius: 4px;
-    font-size: 1.1rem;
-    font-weight: bold;
-    cursor: not-allowed;
-    transition: all 0.3s;
-    letter-spacing: 2px;
-    text-transform: uppercase;
+.nf-input {
+    width: 100%; padding: 14px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #fff; border-radius: 8px;
+    font-size: 16px; outline: none;
+    box-sizing: border-box; margin-bottom: 15px;
 }
+.nf-input:focus { border-color: #00d2ff; }
 
-#neuroflow-btn.active {
-    background: #00d2ff;
-    color: #000;
-    border-color: #00d2ff;
-    cursor: pointer;
-    box-shadow: 0 0 20px rgba(0, 210, 255, 0.8);
+.nf-btn {
+    width: 100%; padding: 14px;
+    background: #00d2ff; color: #000;
+    border: none; border-radius: 8px;
+    font-weight: 800; cursor: pointer;
+    font-size: 14px; letter-spacing: 1px;
 }
+.nf-btn:hover { background: #fff; box-shadow: 0 0 20px #00d2ff; }
 
-#neuroflow-btn.active:hover {
-    background: #66e0ff;
-    box-shadow: 0 0 30px rgba(0, 210, 255, 1);
-}
+.nf-mini { margin-top: 15px; font-size: 12px; color: #555; }

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NeuroFlow | Mission Control</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono:wght@300;400;700&display=swap');
+        
+        body { background-color: #050505; color: #e0e0e0; font-family: 'Roboto Mono', monospace; margin: 0; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; background-image: radial-gradient(circle at center, #112211 0%, #000000 100%); }
+        .container { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; max-width: 1000px; width: 90%; background: rgba(10, 10, 10, 0.85); padding: 40px; border: 1px solid #333; border-radius: 15px; box-shadow: 0 0 80px rgba(0, 210, 255, 0.15); backdrop-filter: blur(20px); }
+        
+        /* LEFT PANEL */
+        .bio-panel { text-align: center; border-right: 1px solid #333; padding-right: 40px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        #tree-img { width: 220px; height: 220px; filter: drop-shadow(0 0 30px rgba(46, 204, 113, 0.4)); transition: all 0.5s ease; }
+        .breathe { animation: breathe 4s infinite ease-in-out; }
+        @keyframes breathe { 0%, 100% {transform: scale(1);} 50% {transform: scale(1.05);} }
+        .status-title { font-family: 'Orbitron', sans-serif; font-size: 1.8rem; color: #2ecc71; margin-top: 20px; text-shadow: 0 0 20px rgba(46, 204, 113, 0.5); }
+        
+        /* RIGHT PANEL */
+        .control-panel { display: flex; flex-direction: column; justify-content: center; }
+        .section-title { color: #00d2ff; font-size: 0.8rem; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
+        input[type="text"] { width: 100%; padding: 15px; background: #151515; border: 1px solid #444; color: #fff; font-family: 'Roboto Mono'; font-size: 1.1rem; border-radius: 5px; margin-bottom: 20px; outline: none; box-sizing: border-box;}
+        input[type="text"]:focus { border-color: #00d2ff; }
+        #whitelist-display { background: #111; padding: 15px; border-radius: 5px; border: 1px dashed #444; color: #888; font-size: 0.8rem; min-height: 80px; margin-bottom: 20px; line-height: 1.6; max-height: 150px; overflow-y: auto;}
+        
+        .btn { padding: 15px; font-family: 'Orbitron'; font-weight: bold; font-size: 1rem; cursor: pointer; border-radius: 5px; transition: 0.3s; text-align: center; border: none; width: 100%; }
+        .btn-primary { background: #00d2ff; color: #000; box-shadow: 0 0 20px rgba(0, 210, 255, 0.3); }
+        .btn-primary:hover { background: #fff; }
+        .btn-danger { background: transparent; border: 1px solid #e74c3c; color: #e74c3c; margin-top: 10px;}
+        .btn-danger:hover { background: #e74c3c; color: #fff; }
+        
+        /* MODERN SWITCH */
+        .switch-wrapper { display: flex; align-items: center; justify-content: space-between; background: #1a1a1a; padding: 15px; border-radius: 8px; border: 1px solid #333; margin-bottom: 10px; }
+        .switch-label { color: #fff; font-size: 1rem; font-weight: bold; }
+        
+        /* Toggle CSS */
+        .switch { position: relative; display: inline-block; width: 50px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #2ecc71; }
+        input:checked + .slider:before { transform: translateX(26px); }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="bio-panel">
+            <img id="tree-img" src="assets/tree_healthy.png" class="breathe">
+            <div id="garden-status" class="status-title">DEEP FLOW</div>
+            <p id="dopamine-stat" style="color: #666; margin-top: 10px; font-size: 0.8rem;">System Optimal</p>
+        </div>
+
+        <div class="control-panel">
+            <div id="setup-view">
+                <div class="section-title">Initialize Protocol</div>
+                <input type="text" id="goal-input" placeholder="Enter Objective (e.g. Learn React)">
+                <button id="start-btn" class="btn btn-primary">ARCHITECT SESSION</button>
+            </div>
+
+            <div id="active-view" class="hidden">
+                <div class="section-title">Current Objective</div>
+                <h2 id="active-goal" style="color: white; margin-top: 0; margin-bottom: 20px;">...</h2>
+                
+                <div class="section-title">Allowed Resources</div>
+                <div id="whitelist-display">Generating...</div>
+
+                <div class="switch-wrapper">
+                    <span class="switch-label">Gamma Waves (40Hz)</span>
+                    <label class="switch">
+                        <input type="checkbox" id="gamma-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+    
+                <button id="stop-btn" class="btn btn-danger">TERMINATE SESSION</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>

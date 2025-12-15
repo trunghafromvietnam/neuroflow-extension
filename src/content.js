@@ -1,228 +1,342 @@
-console.log("NeuroFlow: System Online.");
+/**
+ * NEUROFLOW - CONTENT SCRIPT v7.0
+ */
+console.log("NeuroFlow: Bio-Layer Active.");
 
 const CONFIG = {
     SCROLL_SENSITIVITY: 400,
     MAX_BLUR: 15,
-    MIN_INTENT_LENGTH: 10 ,
-    TYPING_SPEED: 50
+    MIN_INTENT_LENGTH: 3
 };
 
 let currentMode = 'NEUTRAL';
-// --- The cortex --- 
-function analyzeContent() {
-    const title = document.title;
-    const url = window.location.href;
+let audioContext = null;
 
-    chrome.runtime.sendMessage(
-        { action: "ANALYZE_PAGE", title: title, url: url },
-        (response) => {
-            if (response && response.label) {
-                console.log(`AI Verdict: ${response.label}`);
-                
-                if (response.label === 'GROWTH') {
-                    currentMode = 'GROWTH';
-                } else {
-                    currentMode = 'DOPAMINE';
-                    showMissionButton();
+// --- HELPER: STRICT WHITELISTING ---
+function normalizeHost(host) {
+    return (host || "").toLowerCase().replace(/^www\./, "").trim();
+}
+
+function isDomainAllowed(host, allowedDomain) {
+    const h = normalizeHost(host);
+    const a = normalizeHost(allowedDomain);
+    if (!h || !a) return false;
+    return h === a || h.endsWith("." + a);
+}
+
+function isWhitelistedHost(host, whitelist = []) {
+    const hardAllow = ["google.com", "bing.com", "duckduckgo.com", "youtube.com"]; // Hard allow YT to enter routing logic
+    if (hardAllow.some(d => isDomainAllowed(host, d))) return true;
+    return whitelist.some(d => isDomainAllowed(host, d));
+}
+
+// --- UI ENGINE ---
+function showToast(message, type = 'info') {
+    const existing = document.getElementById('nf-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'nf-toast';
+    let color = type === 'growth' ? '#2ecc71' : (type === 'dopamine' ? '#e74c3c' : '#00d2ff');
+
+    toast.innerHTML = `
+        <div style="font-weight:700; color:${color}; font-family:sans-serif; font-size:12px;">NEUROFLOW</div>
+        <div style="color:#fff; font-family:sans-serif; font-size:14px;">${message}</div>
+    `;
+    Object.assign(toast.style, {
+        position: 'fixed', top: '20px', right: '20px', zIndex: '2147483647',
+        padding: '12px 24px', background: 'rgba(5,5,5,0.95)', borderLeft: `3px solid ${color}`,
+        borderRadius: '4px', transform: 'translateX(120%)', transition: 'transform 0.4s ease'
+    });
+    document.documentElement.appendChild(toast);
+    requestAnimationFrame(() => toast.style.transform = 'translateX(0)');
+    setTimeout(() => { if(toast) toast.remove(); }, 4000);
+}
+
+// --- AUDIO ENGINE ---
+class NeuroAudio {
+    constructor() { this.isPlaying = false; this.nodes = []; }
+    
+    init() {
+        if (!audioContext) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioContext = new AudioContext();
+        }
+        if (!this.master) {
+            this.master = audioContext.createGain();
+            this.master.connect(audioContext.destination);
+            this.master.gain.value = 0.05;
+        }
+    }
+
+    async play() {
+        this.init();
+        if (this.isPlaying) return;
+
+        try {
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+            this.startOscillators();
+            showToast("🎵 Gamma Waves Active", "growth");
+        } catch (e) {
+            // Silent fail, wait for user gesture
+        }
+    }
+
+    startOscillators() {
+        if (this.isPlaying) return;
+        const osc1 = audioContext.createOscillator(); osc1.frequency.value = 400;
+        const osc2 = audioContext.createOscillator(); osc2.frequency.value = 440;
+        const pan1 = audioContext.createStereoPanner(); pan1.pan.value = -1;
+        const pan2 = audioContext.createStereoPanner(); pan2.pan.value = 1;
+        
+        osc1.connect(pan1).connect(this.master);
+        osc2.connect(pan2).connect(this.master);
+        osc1.start(); osc2.start();
+        this.nodes = [osc1, osc2];
+        this.isPlaying = true;
+    }
+
+    stop() {
+        if (this.isPlaying) {
+            this.nodes.forEach(n => { try{n.stop()}catch(e){} });
+            this.nodes = [];
+            this.isPlaying = false;
+        }
+    }
+}
+const audioEngine = new NeuroAudio();
+
+// --- LOGIC CONTROLLER ---
+function applyMode(mode) {
+    currentMode = mode;
+    const html = document.documentElement;
+    html.classList.remove('neuroflow-growth-mode', 'neuroflow-dopamine-mode');
+
+    // 1. REPORT STATE TO SYSTEM 
+    chrome.storage.local.set({ currentBrainState: mode });
+
+    if (mode === 'GROWTH') {
+        html.classList.add('neuroflow-growth-mode');
+        html.style.filter = 'none';
+        
+        const btn = document.getElementById('nf-mission-btn');
+        if(btn) btn.remove();
+
+        // Audio Logic
+        chrome.storage.local.get(['gammaEnabled'], (res) => {
+            if (res.gammaEnabled !== false) audioEngine.play();
+        });
+
+    } else {
+        html.classList.add('neuroflow-dopamine-mode');
+        // Stop audio immediately in Dopamine mode
+        audioEngine.stop();
+        showToast("⚠️ Dopamine Detected", "dopamine");
+        showMissionButton();
+    }
+}
+
+function initSystem() {
+    chrome.storage.local.get(['activeSession', 'sessionGoal', 'sessionWhitelist'], (res) => {
+        if (!res.activeSession) {
+            createSessionModal();
+            return;
+        }
+
+        const host = window.location.hostname;
+        const isWhitelisted = isWhitelistedHost(host, res.sessionWhitelist || []);
+
+        if (isWhitelisted) {
+            // --- YOUTUBE SPECIFIC ROUTING ---
+            if (isDomainAllowed(host, 'youtube.com')) {
+                const path = location.pathname || "/";
+                const q = new URLSearchParams(location.search);
+            
+                // 1. Home / Shorts / Feed -> DOPAMINE
+                const isHome = path === "/" || path.startsWith("/feed") || path.startsWith("/shorts");
+                if (isHome) { applyMode("DOPAMINE"); return; }
+            
+                // 2. Search Results -> AI Check
+                if (path.startsWith("/results")) {
+                    const query = q.get("search_query") || "";
+                    const intent = query ? `Youtube: ${query}` : "YouTube Results";
+                    chrome.runtime.sendMessage({ action: "CHECK_ALIGNMENT", mission: res.sessionGoal, intent }, (aiRes) => {
+                        applyMode((aiRes && aiRes.aligned) ? "GROWTH" : "DOPAMINE");
+                    });
+                    return;
+                }
+            
+                // 3. Watch Video -> AI Check
+                if (path.startsWith("/watch")) {
+                    const title = document.title || "YouTube Watch";
+                    chrome.runtime.sendMessage({ action: "CHECK_ALIGNMENT", mission: res.sessionGoal, intent: title }, (aiRes) => {
+                        applyMode((aiRes && aiRes.aligned) ? "GROWTH" : "DOPAMINE");
+                    });
+                    return;
                 }
                 
-                applyVisualFriction();
-            }
+                // Fallback
+                applyMode("DOPAMINE");
+                return;
+            } 
+            // --- END YOUTUBE LOGIC ---
+
+            applyMode("GROWTH");
+        } else {
+            renderGateway(res.sessionGoal);
         }
-    );
-}
-
-function showMissionButton() {
-    if (document.getElementById('neuroflow-mission-btn')) return;
-
-    chrome.storage.local.get(['missionUrl'], (result) => {
-        const missionUrl = result.missionUrl;
-        if (!missionUrl) return; 
-
-        const btn = document.createElement('button');
-        btn.id = 'neuroflow-mission-btn';
-        btn.innerText = "GO TO MISSION";
-        
-        Object.assign(btn.style, {
-            position: 'fixed',
-            bottom: '30px',
-            right: '30px',
-            zIndex: '2147483647',
-            padding: '15px 30px',
-            background: '#00d2ff',
-            color: '#000',
-            border: '2px solid #fff',
-            borderRadius: '50px',
-            fontFamily: 'monospace',
-            fontWeight: 'bold',
-            fontSize: '16px',
-            cursor: 'pointer',
-            boxShadow: '0 0 20px rgba(0, 210, 255, 0.8)',
-            animation: 'pulse 2s infinite'
-        });
-
-        const styleSheet = document.createElement("style");
-        styleSheet.innerText = `
-            @keyframes pulse {
-                0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 210, 255, 0.7); }
-                70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(0, 210, 255, 0); }
-                100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 210, 255, 0); }
-            }
-        `;
-        document.head.appendChild(styleSheet);
-
-        btn.addEventListener('click', () => {
-            window.location.href = missionUrl;
-        });
-
-        document.body.appendChild(btn);
     });
 }
 
-// --- Part 1: Gateway Logics ---
+// --- MODAL & GATEWAY ---
+function createSessionModal() {
+    if (document.getElementById('nf-session-modal')) return;
+    if (window.self !== window.top) return;
 
-function typeWriter(elementId, text, speed) {
-    let i = 0;
-    const element = document.getElementById(elementId);
-    element.innerHTML = ""; 
-    
-    function typing() {
-        if (i < text.length) {
-            element.innerHTML += text.charAt(i);
-            i++;
-            setTimeout(typing, speed);
-        } else {
-            element.style.borderRight = "none";
-        }
-    }
-    typing();
+    const modal = document.createElement('div');
+    modal.id = 'nf-session-modal';
+    // (Using Cyberpunk Style via CSS Class now)
+    modal.innerHTML = `
+        <div class="nf-overlay">
+            <div class="nf-card">
+                <div class="nf-title">NEUROFLOW OS</div>
+                <div class="nf-sub">Initiate Deep Work Protocol</div>
+                <input class="nf-input" type="text" id="nf-goal-input" placeholder="E.g., Learn React..." />
+                <button class="nf-btn" id="nf-start-btn">INITIATE</button>
+                <div class="nf-mini" style="display:flex; gap:10px; justify-content:center; align-items:center;">
+                    <input type="checkbox" id="nf-gamma-toggle" checked> Enable Audio
+                </div>
+            </div>
+        </div>
+    `;
+    document.documentElement.appendChild(modal);
+
+    const input = document.getElementById('nf-goal-input');
+    const btn = document.getElementById('nf-start-btn');
+    const toggle = document.getElementById('nf-gamma-toggle');
+    input.focus();
+
+    const start = () => {
+        if(input.value.length < 3) return;
+        btn.innerText = "ARCHITECTING...";
+        btn.disabled = true;
+        
+        chrome.runtime.sendMessage({ action: "INIT_SESSION_AI", goal: input.value }, (res) => {
+            const whitelist = res.whitelist || [];
+            chrome.storage.local.set({
+                activeSession: true,
+                sessionGoal: input.value,
+                sessionWhitelist: whitelist,
+                gammaEnabled: toggle.checked
+            }, async () => {
+                // Audio Priming
+                if (toggle.checked) { try { await audioEngine.play(); } catch(e) {} }
+                modal.remove();
+                document.body.style.overflow = 'auto';
+                chrome.runtime.sendMessage({ action: "START_SESSION" });
+                initSystem();
+            });
+        });
+    };
+    btn.onclick = start;
+    input.onkeypress = (e) => { if(e.key==='Enter') start() };
 }
 
-function createGateway() {
-    if (sessionStorage.getItem('neuroflow-unlocked')) { 
-        analyzeContent();
-        return; 
-    }
+function renderGateway(mission) {
+    const hostKey = `nf-unlocked:${location.hostname}`;
+    if (sessionStorage.getItem(hostKey)) { initSystem(); return; }
+    if (document.getElementById('nf-gateway')) return;
 
-    const gatewayDiv = document.createElement('div');
-    gatewayDiv.id = 'neuroflow-gateway';
-    gatewayDiv.innerHTML = `
-        <h1>NEUROFLOW SYSTEM</h1>
-        <p id="neuroflow-prompt"></p> 
-        
-        <input type="text" id="neuroflow-input" placeholder="> Enter your intent..." autocomplete="off">
-        <button id="neuroflow-btn">INITIATE SESSION</button>
+    const div = document.createElement('div');
+    div.id = 'nf-gateway';
+    div.innerHTML = `
+        <div class="nf-overlay">
+            <div class="nf-card">
+                <div class="nf-title">OUT OF SCOPE</div>
+                <div class="nf-sub">Not in plan: <b style="color:#fff;">${mission}</b></div>
+                <input class="nf-input" type="text" id="nf-input" placeholder="Justify access (1 sentence)..." />
+                <button class="nf-btn" id="nf-btn">VERIFY</button>
+                <div class="nf-mini">Be specific. What exactly will you do?</div>
+            </div>
+        </div>
     `;
-
-    document.body.appendChild(gatewayDiv);
+    document.documentElement.appendChild(div);
     document.body.style.overflow = 'hidden';
 
-    const promptText = "High Dopamine Access Detected. Determine Your Purpose?";
-    setTimeout(() => {
-        typeWriter("neuroflow-prompt", promptText, CONFIG.TYPING_SPEED);
-    }, 500);
-
-    const input = document.getElementById('neuroflow-input');
-    const btn = document.getElementById('neuroflow-btn');
-
-    input.addEventListener('input', () => {
-        if (input.value.length >= CONFIG.MIN_INTENT_LENGTH) {
-            btn.classList.add('active');
-            btn.disabled = false;
-        } else {
-            btn.classList.remove('active');
-            btn.disabled = true;
-        }
-    });
-
-    btn.addEventListener('click', () => {
-        if (input.value.length >= CONFIG.MIN_INTENT_LENGTH) unlockSite();
-    });
+    const btn = document.getElementById('nf-btn');
+    const input = document.getElementById('nf-input');
     
-    input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && input.value.length >= CONFIG.MIN_INTENT_LENGTH) unlockSite();
-    });
-    
+    const check = () => {
+        if(!input.value) return;
+        btn.innerText = "ANALYZING...";
+        chrome.runtime.sendMessage({ action: "CHECK_ALIGNMENT", mission: mission, intent: input.value }, (res) => {
+            if (res && res.aligned) {
+                div.remove();
+                document.body.style.overflow = 'auto';
+                sessionStorage.setItem(hostKey, 'true'); // Unlock this host
+                applyMode("GROWTH");
+            } else {
+                showToast("⛔ Rejected", "dopamine");
+                btn.innerText = "TRY AGAIN";
+            }
+        });
+    };
+    btn.onclick = check;
     input.focus();
 }
 
-function unlockSite() {
-    const gateway = document.getElementById('neuroflow-gateway');
-    if (gateway) {
-        gateway.style.transition = 'opacity 0.8s ease-in'; 
-        gateway.style.opacity = '0';
-        setTimeout(() => {
-            gateway.remove();
-            document.body.style.overflow = 'auto';
-            sessionStorage.setItem('neuroflow-unlocked', 'true');
-            
-            analyzeContent();
-            applyVisualFriction(); 
-        }, 800);
-    }
+function showMissionButton() {
+    if (document.getElementById('nf-mission-btn')) return;
+    const btn = document.createElement('button');
+    btn.id = 'nf-mission-btn';
+    btn.innerText = "🚀 RETURN TO MISSION";
+    Object.assign(btn.style, { position:'fixed', bottom:'30px', right:'30px', zIndex:'2147483647', padding:'15px 30px', background:'#00d2ff', borderRadius:'50px', border:'2px solid white', cursor:'pointer' });
+    btn.onclick = () => window.location.href = "https://google.com"; 
+    document.body.appendChild(btn);
 }
 
-// --- Part 2: GRAYSCALE + BLUR ---
+// --- GLOBAL LISTENERS ---
+document.addEventListener('pointerdown', async () => {
+    chrome.storage.local.get(['gammaEnabled', 'activeSession'], async (res) => {
+        if (!res.activeSession || res.gammaEnabled === false) return;
+        if (currentMode !== "GROWTH") return;
+        try { await audioEngine.play(); } catch (e) {}
+    });
+}, { capture: true, once: true });
 
-function applyVisualFriction() {
-    const scrollPosition = window.scrollY;
-    let blurAmount = 0;
-
-    if (currentMode === 'GROWTH') {
-        blurAmount = Math.min(scrollPosition / 1000, CONFIG.MIN_BLUR); 
-        document.documentElement.style.filter = `grayscale(100%) blur(${blurAmount}px)`;
-    } else {
-        blurAmount = Math.min(scrollPosition / CONFIG.SCROLL_SENSITIVITY, CONFIG.MAX_BLUR);
-        document.documentElement.style.filter = `grayscale(100%) blur(${blurAmount}px)`;
-    }
-}
-
-// --- Part 3: Run system ---
-
-createGateway();
-
-applyVisualFriction();
-
-window.addEventListener('scroll', () => {
-    if (!document.getElementById('neuroflow-gateway')) {
-        window.requestAnimationFrame(applyVisualFriction);
-    }
-});
-
-// Listen to tilte change
-const observer = new MutationObserver(() => {
-    analyzeContent();
-    applyVisualFriction();
-});
-observer.observe(document.querySelector('title'), { subtree: true, characterData: true, childList: true });
-
-// THE DOOM METER
-let totalPixelsScrolled = 0;
-let lastScrollY = window.scrollY;
-let isScrolling = false;
-
-window.addEventListener('scroll', () => {
-    const currentScrollY = window.scrollY;
-    const distance = Math.abs(currentScrollY - lastScrollY);
-    
-    if (currentMode === 'DOPAMINE' || currentMode === 'NEUTRAL') {
-        totalPixelsScrolled += distance;
+chrome.runtime.onMessage.addListener((req) => {
+    if (req.action === "GLOBAL_AUDIO_STATE_CHANGE") {
+        const isEnabled = req.enabled;
+        
+        if (isEnabled) {
+            if (currentMode === 'GROWTH') {
+                audioEngine.play();
+                showToast("Audio System Enabled", "growth");
+            }
+        } else {
+            audioEngine.stop();
+            showToast("Audio System Disabled", "info");
+        }
     }
     
-    lastScrollY = currentScrollY;
-    isScrolling = true;
+    if (req.action === "MANUAL_TOGGLE_AUDIO") {
+        audioEngine.isPlaying ? audioEngine.stop() : audioEngine.play();
+    }
 });
 
-setInterval(() => {
-    if (isScrolling) {
-        chrome.storage.local.get(['doomScrollPixels'], (result) => {
-            const oldTotal = result.doomScrollPixels || 0;
-            const newTotal = oldTotal + totalPixelsScrolled;
-            
-            chrome.storage.local.set({ doomScrollPixels: newTotal });
-            
-            totalPixelsScrolled = 0;
-            isScrolling = false;
-        });
+let lastUrl = location.href;
+new MutationObserver(() => {
+    if (location.href !== lastUrl) { lastUrl = location.href; initSystem(); }
+}).observe(document, {subtree:true, childList:true});
+
+window.addEventListener('scroll', () => {
+    if (currentMode === 'DOPAMINE' && !location.href.includes('search')) {
+        const blur = Math.min(window.scrollY / CONFIG.SCROLL_SENSITIVITY, CONFIG.MAX_BLUR);
+        document.documentElement.style.filter = `grayscale(100%) blur(${blur}px)`;
     }
-}, 2000);
+});
+
+// START
+initSystem();

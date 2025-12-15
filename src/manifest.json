@@ -1,22 +1,19 @@
 {
   "manifest_version": 3,
-  "name": "NeuroFlow - Dopamine Shield",
-  "version": "1.0.0",
-  "description": "Reclaim your attention. Make social media chemically boring.",
+  "name": "NeuroFlow | AI-Powered Attention OS",
+  "version": "6.0.0",
+  "description": "An AI-driven cognitive layer that engineers Flow State through intent alignment and binaural entrainment.",
   "permissions": [
     "activeTab",
     "scripting",
-    "storage"
+    "storage",
+    "alarms"
   ],
   "host_permissions": [
-    "*://*.facebook.com/*",
-    "*://*.youtube.com/*",
-    "*://*.tiktok.com/*",
-    "*://*.instagram.com/*",
+    "<all_urls>",
     "https://api.openai.com/*"
   ],
   "action": {
-    "default_popup": "popup.html",
     "default_icon": {
       "16": "assets/icon.png",
       "48": "assets/icon.png",
@@ -28,18 +25,13 @@
     "type": "module"
   },
   "icons": {
-      "16": "assets/icon.png",
-      "48": "assets/icon.png",
-      "128": "assets/icon.png"
+    "16": "assets/icon.png",
+    "48": "assets/icon.png",
+    "128": "assets/icon.png"
   },
   "content_scripts": [
     {
-      "matches": [
-        "*://*.facebook.com/*",
-        "*://*.youtube.com/*",
-        "*://*.tiktok.com/*",
-        "*://*.instagram.com/*"
-      ],
+      "matches": ["<all_urls>"],
       "js": ["content.js"],
       "css": ["styles.css"],
       "run_at": "document_end"

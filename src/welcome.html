@@ -1,78 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>NeuroFlow - Initialization</title>
+    <title>NeuroFlow | Initialization</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono:wght@300;400&display=swap');
-
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto+Mono:wght@400&display=swap');
         body {
-            background-color: #000;
-            color: #00d2ff;
-            font-family: 'Roboto Mono', monospace;
-            height: 100vh;
+            background: #000; color: #00d2ff; font-family: 'Roboto Mono', monospace;
+            height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
             margin: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            background-image: linear-gradient(rgba(0, 210, 255, 0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 210, 255, 0.03) 1px, transparent 1px);
-            background-size: 30px 30px;
         }
-
-        h1 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 3rem;
-            margin-bottom: 20px;
-            text-shadow: 0 0 20px rgba(0, 210, 255, 0.5);
-            letter-spacing: 5px;
-        }
-
-        .terminal-text {
-            font-size: 1.2rem;
-            color: #e0e0e0;
-            max-width: 600px;
-            line-height: 1.6;
-            margin-bottom: 40px;
-            border-right: 2px solid #00d2ff;
-            white-space: pre-wrap;
-            overflow: hidden;
-            display: inline-block;
-            text-align: left;
-        }
-
+        h1 { font-family: 'Orbitron'; font-size: 3rem; margin-bottom: 20px; letter-spacing: 5px; }
+        .text { font-size: 1.2rem; color: #e0e0e0; margin-bottom: 40px; }
         .btn {
-            padding: 15px 40px;
-            background: transparent;
-            border: 2px solid #00d2ff;
-            color: #00d2ff;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.2rem;
-            cursor: pointer;
-            transition: 0.3s;
-            text-transform: uppercase;
-            opacity: 0; 
-            animation: fadeIn 1s forwards;
-            animation-delay: 4s; 
+            padding: 15px 40px; background: transparent; border: 2px solid #00d2ff; color: #00d2ff;
+            font-family: 'Orbitron'; font-size: 1.2rem; cursor: pointer; transition: 0.3s;
         }
-
-        .btn:hover {
-            background: #00d2ff;
-            color: #000;
-            box-shadow: 0 0 30px rgba(0, 210, 255, 0.8);
-        }
-
-        @keyframes fadeIn {
-            to { opacity: 1; }
-        }
+        .btn:hover { background: #00d2ff; color: #000; box-shadow: 0 0 30px #00d2ff; }
     </style>
 </head>
 <body>
     <h1>NEUROFLOW INSTALLED</h1>
-    <div class="terminal-text" id="typewriter"></div>
-    <button class="btn" id="enter-btn">ENTER THE MATRIX</button>
-
+    <div class="text">
+        > Protocol: ACTIVE<br>
+        > Bio-Layer: CONNECTED<br><br>
+        Your browser is now an Attention Operating System.
+    </div>
+    <button class="btn" id="start-btn">INITIALIZE SYSTEM</button>
     <script src="welcome.js"></script>
 </body>
 </html>
