@@ -65,6 +65,7 @@ NEUROFLOW/
 ├── package.json
 ├── .gitignore
 └── README.md
+```
 
 ## Installation & Setup
 
